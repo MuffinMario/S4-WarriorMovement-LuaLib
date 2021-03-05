@@ -7,6 +7,8 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <map>
+
 using namespace std::string_literals;
 S4API IS4ModInterface::m_pS4API;
 S4HOOK S4WarriorMovement::m_luaOpenHook = NULL;
@@ -104,20 +106,39 @@ DETACH_VALUE S4WarriorMovement::onDetach()
 // lib name
 static const char* libName = "WarriorsLib";
 // lib functions
-static std::array<struct luaL_reg, 3> aWarriorsLibArr{ {
-    {const_cast<char*>("Send"),S4WarriorMovement::Send},
-    {const_cast<char*>("SelectWarriors"),S4WarriorMovement::SelectWarriors},
-    {const_cast<char*>("warriorDebug"),S4WarriorMovement::warriorDebug}
-} };
+constexpr size_t libfunccount = 2;
 
-// WarriorsLib.Send(group,to_x,to_y,party);
+static std::array<struct luaL_reg,
+    libfunccount
+#if _DEBUG 
+    + 1
+#endif
+> aWarriorsLibArr{ {
+    {const_cast<char*>("Send"),S4WarriorMovement::Send},
+    {const_cast<char*>("SelectWarriors"),S4WarriorMovement::SelectWarriors}
+#ifdef _DEBUG
+    ,{const_cast<char*>("warriorDebug"),S4WarriorMovement::warriorDebug}
+#endif
+} };
+std::map<const char*, S4_MOVEMENT_ENUM> aWarriorsLibMovementVars{
+    {"MOVE_FORWARDS",S4_MOVEMENT_ENUM::S4_MOVEMENT_FORWARD},
+    {"MOVE_PATROL",S4_MOVEMENT_ENUM::S4_MOVEMENT_PATROL},
+    {"MOVE_ACCUMULATE",S4_MOVEMENT_ENUM::S4_MOVEMENT_ACCUMULATE},
+    {"MOVE_WATCH",S4_MOVEMENT_ENUM::S4_MOVEMENT_WATCH},
+    {"MOVE_STOP",S4_MOVEMENT_ENUM::S4_MOVEMENT_STOP}
+};
+
+// WarriorsLib.Send(group,to_x,to_y,movementtype);
 void S4WarriorMovement::Send()
 {
     // param 1
     auto grouptbl = lua_lua2C(1);
     int x = luaL_check_int(2);
     int y = luaL_check_int(3);
-    int party = luaL_check_int(4);
+    DWORD movementType = S4_MOVEMENT_FORWARD;
+    auto param4 = lua_lua2C(4);
+    if (lua_isnumber(param4))
+        movementType = lua_getnumber(param4);
     if (lua_istable(grouptbl)) {
         std::vector<WORD> warriorIDs;
         CLuaUtils::push(grouptbl);
@@ -137,11 +158,11 @@ void S4WarriorMovement::Send()
             i = lua_getresult(1);
             v = lua_getresult(2);
         }
-        m_pS4API->SendWarriors(x, y, S4_MOVEMENT_ENUM::S4_MOVEMENT_FORWARD, warriorIDs.data(), warriorIDs.size(), party);
+        m_pS4API->SendWarriors(x, y, static_cast<S4_MOVEMENT_ENUM>(movementType), warriorIDs.data(), warriorIDs.size(), 1);
     }
     else if (lua_isnumber(grouptbl)) { // one id for some reason
         WORD warrior = (WORD)lua_getnumber(grouptbl);
-        m_pS4API->SendWarriors(x, y, S4_MOVEMENT_ENUM::S4_MOVEMENT_FORWARD, &warrior,1, party);
+        m_pS4API->SendWarriors(x, y, S4_MOVEMENT_ENUM::S4_MOVEMENT_FORWARD, &warrior,1, 1);
     }
     // do nothing?
     //else
@@ -197,7 +218,8 @@ void S4WarriorMovement::SelectWarriors() {
     auto CircleSelectWarriors = [&t,&warriortype,&party,TableAppendInt](WORD x, WORD y) -> void {
         auto pEntity = S4ModApi::GetEntityAt(x, y);
         if (pEntity) {
-             if (pEntity->GetClass() != S4_ENTITY_ENUM::S4_ENTITY_SETTLER)
+             // only move settlers, carts, warmachines, boats, manacopter
+             if (pEntity->GetClass() != S4_ENTITY_ENUM::S4_ENTITY_SETTLER && !(pEntity->GetClass() >= S4_ENTITY_ENUM::S4_ENTITY_CART && pEntity->GetClass() <= S4_ENTITY_ENUM::S4_ENTITY_MANAKOPTER))
                 return;
             auto settlertype = pEntity->objectId;
             auto settlerID = pEntity->id2;
@@ -240,5 +262,9 @@ void S4WarriorMovement::lua_wmlibopen()
     //insert functions in table
     for (auto& red : aWarriorsLibArr)
         CLuaUtils::addtableval(lua_getglobal(const_cast<char*>(libName)), red.name, red.func);
+
+    //insert move constants in table
+    for (auto& red : aWarriorsLibMovementVars)
+        CLuaUtils::addtableval(lua_getglobal(const_cast<char*>(libName)), red.first, static_cast<double>(red.second));
 
 }

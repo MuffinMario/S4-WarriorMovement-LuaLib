@@ -267,4 +267,6 @@ void S4WarriorMovement::lua_wmlibopen()
     for (auto& red : aWarriorsLibMovementVars)
         CLuaUtils::addtableval(lua_getglobal(const_cast<char*>(libName)), red.first, static_cast<double>(red.second));
 
+    CLuaUtils::addtableval(lua_getglobal(const_cast<char*>(libName)), "VERSION", "1.0");
+
 }

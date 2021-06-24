@@ -27,7 +27,7 @@ The functions:
  
  ```lua
  function combine_tables(t1,t2)
-	tc = {}
+	local tc = {}
 	local i = nil
 	local v = nil
 	i,v = next(t1,nil)

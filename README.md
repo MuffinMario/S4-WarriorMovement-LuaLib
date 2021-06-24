@@ -21,4 +21,24 @@ The functions:
 - WarriorsLib.Send(group,x,y,movementtype)
    - Sends a <group> of entities to the coordinate <x>/<y>. The behavior in which they walk towards this point is determined by <movementtype>
  
+ # pro-tip: combine two tables
  
+ Here's a simple function to combine two tables, so you can spare yourself the effort to do it yourself
+ 
+ ```lua
+ function combine_tables(t1,t2)
+	tc = {}
+	local i = nil
+	local v = nil
+	i,v = next(t1,nil)
+	while i do
+		tinsert(tc,v)
+		i,v = next(t1,i)
+	end
+	i,v = next(t2,nil)
+	while i do
+		tinsert(tc,v)
+		i,v = next(t2,i)
+	end
+	return tc
+end```

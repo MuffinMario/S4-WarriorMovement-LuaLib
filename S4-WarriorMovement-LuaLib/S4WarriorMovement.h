@@ -36,6 +36,11 @@ struct S4WarriorMovement :public IS4ModInterface {
 	/* Lua functions */
 	static void Send();
 	static void SelectWarriors();
+	static void RecruitWarriors();
+	static void GarrisonWarriors();
+	static void UnGarrisonWarriors();
+	static void AiGarrisonWarriors();
+	static void AiUnGarrisonWarriors();
 	static void warriorDebug();
 private:
 	static HRESULT __stdcall onLuaOpen();

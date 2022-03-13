@@ -37,6 +37,7 @@ The functions:
    - Only works for human players, not AIs
    - settlertype: for example Settlers.SWORDSMAN_01 or Settlers.BOWMAN_03
    - amount: 
+	
 | Value | Description                                                  |
 | ----- | ------------------------------------------------------------ |
 | -5    | Subtract five unit from the queue.                           |

@@ -112,7 +112,7 @@ DETACH_VALUE S4WarriorMovement::onDetach()
 // lib name
 static const char* libName = "WarriorsLib";
 // lib functions
-constexpr size_t libfunccount = 8;
+constexpr size_t libfunccount = 8 - 6;
 
 static std::array<struct luaL_reg,
     libfunccount
@@ -121,13 +121,13 @@ static std::array<struct luaL_reg,
 #endif
 > aWarriorsLibArr{ {
     {const_cast<char*>("Send"), S4WarriorMovement::Send},
-    {const_cast<char*>("UnGarrisonWarriors"), S4WarriorMovement::UnGarrisonWarriors},
-    {const_cast<char*>("GarrisonWarriors"), S4WarriorMovement::GarrisonWarriors},
-    {const_cast<char*>("AiUnGarrisonWarriors"), S4WarriorMovement::AiUnGarrisonWarriors},
-    {const_cast<char*>("AiGarrisonWarriors"), S4WarriorMovement::AiGarrisonWarriors},
-    {const_cast<char*>("RecruitWarriors"), S4WarriorMovement::RecruitWarriors},
-    {const_cast<char*>("AiRecruitWarriors"), S4WarriorMovement::AiRecruitWarriors},
-    {const_cast<char*>("SelectWarriors"), S4WarriorMovement::SelectWarriors}
+    {const_cast<char*>("SelectWarriors"), S4WarriorMovement::SelectWarriors},
+    //{const_cast<char*>("UnGarrisonWarriors"), S4WarriorMovement::UnGarrisonWarriors},
+    //{const_cast<char*>("GarrisonWarriors"), S4WarriorMovement::GarrisonWarriors},
+    //{const_cast<char*>("AiUnGarrisonWarriors"), S4WarriorMovement::AiUnGarrisonWarriors},
+    //{const_cast<char*>("AiGarrisonWarriors"), S4WarriorMovement::AiGarrisonWarriors},
+    //{const_cast<char*>("RecruitWarriors"), S4WarriorMovement::RecruitWarriors},
+    //{const_cast<char*>("AiRecruitWarriors"), S4WarriorMovement::AiRecruitWarriors}
 #ifdef _DEBUG
     ,{const_cast<char*>("warriorDebug"), S4WarriorMovement::warriorDebug}
 #endif

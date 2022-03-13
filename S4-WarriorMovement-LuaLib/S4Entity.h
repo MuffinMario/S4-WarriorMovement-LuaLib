@@ -35,6 +35,7 @@ struct CPersistance {
 	virtual VOID serialize(DWORD*) = 0;
 };
 class ISettlerRole : public CPersistance {
+public:
 	/* + 4 S */ CHAR unk_04;
 	/* + 5 S */ BYTE unk_05;
 	/* + 6 S */ BYTE walkspeed; // in ticks per field

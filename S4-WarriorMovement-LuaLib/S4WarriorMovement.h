@@ -37,6 +37,7 @@ struct S4WarriorMovement :public IS4ModInterface {
 	static void Send();
 	static void SelectWarriors();
 	static void RecruitWarriors();
+	static void AiRecruitWarriors();
 	static void GarrisonWarriors();
 	static void UnGarrisonWarriors();
 	static void AiGarrisonWarriors();

@@ -112,7 +112,7 @@ DETACH_VALUE S4WarriorMovement::onDetach()
 // lib name
 static const char* libName = "WarriorsLib";
 // lib functions
-constexpr size_t libfunccount = 7;
+constexpr size_t libfunccount = 8;
 
 static std::array<struct luaL_reg,
     libfunccount
@@ -126,6 +126,7 @@ static std::array<struct luaL_reg,
     {const_cast<char*>("AiUnGarrisonWarriors"), S4WarriorMovement::AiUnGarrisonWarriors},
     {const_cast<char*>("AiGarrisonWarriors"), S4WarriorMovement::AiGarrisonWarriors},
     {const_cast<char*>("RecruitWarriors"), S4WarriorMovement::RecruitWarriors},
+    {const_cast<char*>("AiRecruitWarriors"), S4WarriorMovement::AiRecruitWarriors},
     {const_cast<char*>("SelectWarriors"), S4WarriorMovement::SelectWarriors}
 #ifdef _DEBUG
     ,{const_cast<char*>("warriorDebug"), S4WarriorMovement::warriorDebug}
@@ -236,10 +237,21 @@ void S4WarriorMovement::RecruitWarriors() {
     auto warriortype = luaL_check_int(2);
     auto amount = luaL_check_int(3);
     auto party = luaL_check_int(4);
+    if (m_pS4API->GetLocalPlayer() == party) {
+        m_pS4API->RecruitWarriors(buildingid, static_cast<S4_SETTLER_ENUM>(warriortype), amount, party);
+    }
+}
+
+// AiRecruitWarriors(number buildingid, number warriortype, number amount, number party)
+// WarriorsLib.AiRecruitWarriors(Buildings.GetFirstBuilding(1, Buildings.BARRACKS), Settlers.SWORDSMAN_03, 5, 1)
+void S4WarriorMovement::AiRecruitWarriors() {
+    auto buildingid = luaL_check_int(1);
+    auto warriortype = luaL_check_int(2);
+    auto amount = luaL_check_int(3);
+    auto party = luaL_check_int(4);
 
     m_pS4API->RecruitWarriors(buildingid, static_cast<S4_SETTLER_ENUM>(warriortype), amount, party);
 }
-
 
 // GarrisonWarriors(number buildingid, number party)
 // WarriorsLib.GarrisonWarriors(Buildings.GetFirstBuilding(1, Buildings.GUARDTOWERSMALL), 1)
@@ -262,7 +274,7 @@ void S4WarriorMovement::UnGarrisonWarriors() {
         m_pS4API->UnGarrisonWarriors(buildingid, column, bowman, party);
     }
 }
-// GarrisonWarriors(number buildingid, number party)
+// AiGarrisonWarriors(number buildingid, number party)
 // WarriorsLib.AiGarrisonWarriors(Buildings.GetFirstBuilding(1, Buildings.GUARDTOWERSMALL), 1)
 void S4WarriorMovement::AiGarrisonWarriors() {
     auto buildingid = luaL_check_int(1);
@@ -270,7 +282,7 @@ void S4WarriorMovement::AiGarrisonWarriors() {
     m_pS4API->GarrisonWarriors(buildingid, party);
 }
 
-// UnGarrisonWarriors(number buildingid, number column, boolean bowman, number party)
+// AiUnGarrisonWarriors(number buildingid, number column, boolean bowman, number party)
 // WarriorsLib.AiUnGarrisonWarriors(Buildings.GetFirstBuilding(1, Buildings.GUARDTOWERSMALL),-1,1,1) see: https://github.com/nyfrk/S4ModApi/wiki/UnGarrisonWarriors
 void S4WarriorMovement::AiUnGarrisonWarriors() {
     auto buildingid = luaL_check_int(1);

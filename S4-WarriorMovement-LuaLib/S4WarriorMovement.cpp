@@ -152,11 +152,6 @@ void S4WarriorMovement::Send()
         movementType = lua_getnumber(param4);
     if (lua_isnumber(grouptbl)) {
         CSelection& selection = g_aSettlerSelections.at(lua_getnumber(grouptbl));
-        std::string s;
-        s = "selection size: ";
-        s += std::to_string(selection.m_aIds.size());
-        m_pS4API->ShowTextMessage(s.c_str(), 0, 0);
-
         m_pS4API->SendWarriors(x, y, static_cast<S4_MOVEMENT_ENUM>(movementType), selection.m_aIds.data(), selection.m_aIds.size(), 0);
     }
     // do nothing?

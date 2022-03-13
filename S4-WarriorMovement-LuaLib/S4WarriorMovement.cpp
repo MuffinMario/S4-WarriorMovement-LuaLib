@@ -203,6 +203,7 @@ void S4WarriorMovement::SelectWarriors() {
     };
     auto CircleSelectWarriors = [&warriortype, &party, TableAppendInt](WORD x, WORD y) -> void {
         auto pEntity = S4ModApi::GetEntityAt(x, y);
+
         if (pEntity) {
             // only move settlers, carts, warmachines, boats, manacopter
             if (pEntity->GetClass() != S4_ENTITY_ENUM::S4_ENTITY_SETTLER && !(pEntity->GetClass() >= S4_ENTITY_ENUM::S4_ENTITY_CART && pEntity->GetClass() <= S4_ENTITY_ENUM::S4_ENTITY_MANAKOPTER))

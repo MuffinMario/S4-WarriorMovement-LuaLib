@@ -67,13 +67,13 @@ BEGIN
     BEGIN
         BLOCK "040704b0"
         BEGIN
-            VALUE "CompanyName", "TODO: <Company name>"
-            VALUE "FileDescription", "TODO: <File description>"
+            VALUE "CompanyName", "MuffinMario"
+            VALUE "FileDescription", "Add extra Lua Functions to S4 Mapscripts"
             VALUE "FileVersion", "1.2.0.0"
-            VALUE "InternalName", "S4Warrio.dll"
+            VALUE "InternalName", "S4WarriorLib"
             VALUE "LegalCopyright", "Copyright (C) 2022"
-            VALUE "OriginalFilename", "S4Warrio.dll"
-            VALUE "ProductName", "TODO: <Product name>"
+            VALUE "OriginalFilename", "S4WarriorLib.dll"
+            VALUE "ProductName", "S4WarriorLib"
             VALUE "ProductVersion", "1.2.0.0"
         END
     END

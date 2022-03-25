@@ -9,5 +9,9 @@
 
 // Fügen Sie hier Header hinzu, die vorkompiliert werden sollen.
 #include "framework.h"
+#include "S4ModApi.h"
+#include "S4Entity.h"
+#include "luatypes.h"
+#include "luautils.h"
 
 #endif //PCH_H

@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <S4ModApi.h>
+#include "S4ModApi.h"
 enum class ATTACH_VALUE {
 	SUCCESS = 0,
 	FAILED_COULD_NOT_CREATE_API_PTR,
@@ -29,7 +29,7 @@ protected:
 	static bool releaseAPI();
 
 };
-struct S4WarriorMovement :public IS4ModInterface {
+struct S4WarriorLib :public IS4ModInterface {
 	static ATTACH_VALUE onAttach();
 	static DETACH_VALUE onDetach();
 
@@ -37,6 +37,7 @@ struct S4WarriorMovement :public IS4ModInterface {
 	static void Send();
 	static void SelectWarriors();
 	static void RecruitWarriors();
+	static void isHuman();
 	static void AiRecruitWarriors();
 	static void GarrisonWarriors();
 	static void UnGarrisonWarriors();

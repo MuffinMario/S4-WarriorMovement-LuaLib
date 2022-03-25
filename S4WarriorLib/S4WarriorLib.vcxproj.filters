@@ -13,9 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Headerdateien\s4modapi">
-      <UniqueIdentifier>{a827bb98-c9d6-45ad-be24-ca3151ba5938}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -24,19 +21,19 @@
     <ClInclude Include="pch.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="S4WarriorMovement.h">
+    <ClInclude Include="S4WarriorLib.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="luautils.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="S4Entity.h">
-      <Filter>Headerdateien\s4modapi</Filter>
-    </ClInclude>
-    <ClInclude Include="S4enums.h">
-      <Filter>Headerdateien\s4modapi</Filter>
-    </ClInclude>
     <ClInclude Include="luatypes.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="S4Entity.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
@@ -47,7 +44,7 @@
     <ClCompile Include="pch.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="S4WarriorMovement.cpp">
+    <ClCompile Include="S4WarriorLib.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="luautils.cpp">
@@ -56,5 +53,10 @@
     <ClCompile Include="S4Entity.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="S4WarriorLib.rc">
+      <Filter>Ressourcendateien</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

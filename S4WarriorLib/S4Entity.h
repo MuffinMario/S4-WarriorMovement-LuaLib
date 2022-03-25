@@ -24,9 +24,8 @@
 
 #pragma once
 
+#include "S4ModApi.h"
 
-#include <S4ModApi.h>
-#include "S4enums.h"
 struct CPersistance {
 	inline LPVOID* GetVtable() { return *(LPVOID**)this; }
 	S4_ROLE_ENUM GetRoleClass();

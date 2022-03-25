@@ -1,6 +1,6 @@
 // dllmain.cpp : Definiert den Einstiegspunkt für die DLL-Anwendung.
 #include "pch.h"
-#include "S4WarriorLib.h"
+#include "S4WarriorsLib.h"
 #pragma comment(lib,"S4ModApi")
 
 BOOL APIENTRY DllMain(HMODULE hModule,
@@ -11,14 +11,14 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
-        if (S4WarriorLib::onAttach() != ATTACH_VALUE::SUCCESS) {
+        if (S4WarriorsLib::onAttach() != ATTACH_VALUE::SUCCESS) {
             return FALSE;
         }
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
         break;
     case DLL_PROCESS_DETACH:
-        if (S4WarriorLib::onDetach() != DETACH_VALUE::SUCCESS) {
+        if (S4WarriorsLib::onDetach() != DETACH_VALUE::SUCCESS) {
             return FALSE;
         }
         break;

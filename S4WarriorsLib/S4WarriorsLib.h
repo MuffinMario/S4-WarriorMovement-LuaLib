@@ -29,7 +29,7 @@ protected:
 	static bool releaseAPI();
 
 };
-struct S4WarriorLib :public IS4ModInterface {
+struct S4WarriorsLib :public IS4ModInterface {
 	static ATTACH_VALUE onAttach();
 	static DETACH_VALUE onDetach();
 
@@ -43,7 +43,6 @@ struct S4WarriorLib :public IS4ModInterface {
 	static void UnGarrisonWarriors();
 	static void AiGarrisonWarriors();
 	static void AiUnGarrisonWarriors();
-	static void warriorDebug();
 private:
 	static HRESULT __stdcall onLuaOpen();
 	static void lua_wmlibopen();

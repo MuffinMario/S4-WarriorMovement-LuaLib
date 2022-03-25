@@ -338,5 +338,3 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
-/S4-WarriorMovement-LuaLib/S4ModApi.h
-/S4-WarriorMovement-LuaLib/S4ModApi.lib

@@ -15,10 +15,13 @@ S4HOOK S4WarriorLib::m_luaOpenHook = NULL;
 IEntity*** g_paSettlerPool;
 WORD** g_paEntityMap;
 DWORD* g_pMapSize;
+DWORD* g_pAIPartiesBitflags;
+
 //offsets, all HE because bruh imagine GE
 constexpr size_t entityPoolOffsetHE = 0xECDE9;
 constexpr size_t entityMapOffsetHE = 0x11630DC;
 constexpr size_t mapSizeOffsetHE = 0xD6921C;
+constexpr size_t aiPartiesBitflagsOffsetHE = 0x106B150;
 
 class CSelection {
 public:
@@ -53,9 +56,11 @@ bool initOffsets() {
     g_s4Base = (DWORD)GetModuleHandle(nullptr);
     if (!g_s4Base) return false;
 
-    g_paSettlerPool = (IEntity***)(g_s4Base + entityPoolOffsetHE); // all types are 32-bit on most common compilers at least
-    g_paEntityMap = (WORD**)(g_s4Base + entityMapOffsetHE);
-    g_pMapSize = (DWORD*)(g_s4Base + mapSizeOffsetHE);
+    g_paSettlerPool = reinterpret_cast<IEntity***>(g_s4Base + entityPoolOffsetHE); // all types are 32-bit on most common compilers at least
+    g_paEntityMap = reinterpret_cast<WORD**>(g_s4Base + entityMapOffsetHE);
+    g_pMapSize = reinterpret_cast<DWORD*>(g_s4Base + mapSizeOffsetHE);
+    g_pAIPartiesBitflags = reinterpret_cast<DWORD*>(g_s4Base + aiPartiesBitflagsOffsetHE);
+
     return true;
 }
 bool IS4ModInterface::createAPI()
@@ -110,26 +115,19 @@ DETACH_VALUE S4WarriorLib::onDetach()
 // lib name
 static const char* libName = "WarriorLib";
 // lib functions
-constexpr size_t libfunccount = 5;
+constexpr size_t libfunccount = 6;
 
 static std::array<struct luaL_reg,
-    libfunccount
-#if _DEBUG 
-    + 1
-#endif
-> aWarriorLibArr{ {
+    libfunccount> aWarriorLibArr{ {
     {const_cast<char*>("Send"), S4WarriorLib::Send},
     {const_cast<char*>("SelectWarriors"), S4WarriorLib::SelectWarriors},
-    //{const_cast<char*>("isHuman"), S4WarriorLib::isHuman},
+    {const_cast<char*>("isHuman"), S4WarriorLib::isHuman},
     //{const_cast<char*>("UnGarrisonWarriors"), S4WarriorLib::UnGarrisonWarriors},
     //{const_cast<char*>("GarrisonWarriors"), S4WarriorLib::GarrisonWarriors},
     {const_cast<char*>("AiUnGarrisonWarriors"), S4WarriorLib::AiUnGarrisonWarriors},
     {const_cast<char*>("AiGarrisonWarriors"), S4WarriorLib::AiGarrisonWarriors},
     //{const_cast<char*>("RecruitWarriors"), S4WarriorLib::RecruitWarriors},
     {const_cast<char*>("AiRecruitWarriors"), S4WarriorLib::AiRecruitWarriors}
-#ifdef _DEBUG
-    ,{const_cast<char*>("warriorDebug"), S4WarriorLib::warriorDebug}
-#endif
 } };
 std::map<const char*, S4_MOVEMENT_ENUM> aWarriorLibMovementVars{
     {"MOVE_FORWARDS",S4_MOVEMENT_ENUM::S4_MOVEMENT_FORWARD},
@@ -231,7 +229,7 @@ void S4WarriorLib::SelectWarriors() {
 
 bool checkPartyIsHuman(int party)
 {
-    if (party) {
+    if (*g_pAIPartiesBitflags & (1 <<party)) {
         return true;
     }
     return false;
@@ -313,19 +311,6 @@ void S4WarriorLib::AiUnGarrisonWarriors() {
     m_pS4API->UnGarrisonWarriors(buildingid, column, bowman, party);
 
 }
-// just a debug function
-void S4WarriorLib::warriorDebug() {
-    auto mapsize = S4ModApi::GetMapSize();
-    auto entityID = S4ModApi::GetEntityIdAt(mapsize / 2, mapsize / 2);
-    m_pS4API->ShowTextMessage(("Entity ID at middle of map: "s + std::to_string(entityID)).c_str(), 0, 0);
-    if (entityID) {
-        auto entity = (*g_paSettlerPool)[entityID];
-        std::stringstream entityData;
-        entityData << "Entity data: " << entity << " / " << entity->x << "|" << entity->y;
-        m_pS4API->ShowTextMessage(entityData.str().c_str(), 0, 0);
-    }
-}
-
 
 HRESULT __stdcall S4WarriorLib::onLuaOpen()
 {

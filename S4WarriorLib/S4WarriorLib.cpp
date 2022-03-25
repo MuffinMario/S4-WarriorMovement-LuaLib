@@ -236,7 +236,7 @@ bool checkPartyIsHuman(int party)
     }
     return false;
 }
-
+ 
 // isHuman(number party)
 // WarriorLib.isHuman(1)
 void S4WarriorLib::isHuman() {

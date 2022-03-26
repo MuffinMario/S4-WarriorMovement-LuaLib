@@ -30,20 +30,25 @@ struct CPlayerMetadata {
     DWORD unknown11;
 };
 static_assert(sizeof(CPlayerMetadata) == 0x3C, "CPlayerMetadata is not 0x3C bytes");
+typedef bool(__fastcall* IS_AI_PROC)(int player);
 
 IEntity*** g_paSettlerPool;
 WORD** g_paEntityMap;
 DWORD* g_pMapSize;
 DWORD* g_pAIPartiesBitflags;
 CPlayerMetadata* g_aPlayerMetadata;
+IS_AI_PROC g_pIsAI;
+
 //offsets, all HE because bruh imagine GE
 constexpr size_t entityPoolOffsetHE = 0xECDE9;
 constexpr size_t entityMapOffsetHE = 0x11630DC;
 constexpr size_t mapSizeOffsetHE = 0xD6921C;
 // thx 2 jhnp
 constexpr size_t aiPartiesBitflagsOffsetHE = 0x106B150;
+constexpr size_t IsAi = 0x4F7A40 - 0x400000;
 // thx 2 kdsystem
 constexpr size_t aPlayerMetadataOffset = 0x109B628-0x1c-0x3C; // player 0 is empty dummy with random adress in the middle (hopefully not vtable and im mixing stuff up)
+
 
 
 class CSelection {
@@ -75,6 +80,7 @@ namespace S4ModApi {
     }
 }
 DWORD g_s4Base = NULL;
+
 bool initOffsets() {
     g_s4Base = (DWORD)GetModuleHandle(nullptr);
     if (!g_s4Base) return false;
@@ -84,6 +90,7 @@ bool initOffsets() {
     g_pMapSize = reinterpret_cast<DWORD*>(g_s4Base + mapSizeOffsetHE);
     g_pAIPartiesBitflags = reinterpret_cast<DWORD*>(g_s4Base + aiPartiesBitflagsOffsetHE);
     g_aPlayerMetadata = reinterpret_cast<CPlayerMetadata*>(g_s4Base + aPlayerMetadataOffset);
+    g_pIsAI = reinterpret_cast<IS_AI_PROC>(g_s4Base + IsAi);
 
     return true;
 }
@@ -107,9 +114,7 @@ bool IS4ModInterface::releaseAPI()
     return false;
 }
 
-ATTACH_VALUE S4WarriorsLib::onAttach()
-{
-
+ATTACH_VALUE S4WarriorsLib::onAttach() {
     if (!createAPI())
         return ATTACH_VALUE::FAILED_COULD_NOT_CREATE_API_PTR;
     if (!m_pS4API->IsEdition(S4_EDITION_HISTORY))
@@ -126,9 +131,7 @@ ATTACH_VALUE S4WarriorsLib::onAttach()
     return ATTACH_VALUE::SUCCESS;
 }
 
-DETACH_VALUE S4WarriorsLib::onDetach()
-{
-
+DETACH_VALUE S4WarriorsLib::onDetach() {
     m_pS4API->RemoveListener(m_luaOpenHook);
 
     if (!releaseAPI()) {
@@ -165,8 +168,7 @@ std::map<const char*, S4_MOVEMENT_ENUM> aWarriorsLibMovementVars{
 };
 
 // WarriorsLib.Send(group,to_x,to_y,movementtype);
-void S4WarriorsLib::Send()
-{
+void S4WarriorsLib::Send() {
     // param 1
     auto grouptbl = lua_lua2C(1);
     int x = luaL_check_int(2);
@@ -255,12 +257,13 @@ void S4WarriorsLib::SelectWarriors() {
     }
 }
 
-bool checkPartyIsHuman(int party)
-{
-    if (*g_pAIPartiesBitflags & (1 <<party)) {
+bool checkPartyIsHuman(int party) {
+    if (g_pIsAI(party)) 
+           return false;
+    if (*g_pAIPartiesBitflags & (1 << party))
         return false;
-    }
     return true;
+
 }
  
 // isHuman(number party)
@@ -327,9 +330,8 @@ void S4WarriorsLib::RecruitWarriors() {
     auto warriortype = luaL_check_int(2);
     auto amount = luaL_check_int(3);
     auto party = luaL_check_int(4);
-    auto enforceAI = luaL_check_int(5) or 0;
 
-    if (checkPartyIsHuman(party) && enforceAI != 1) {
+    if (checkPartyIsHuman(party)) {
         if (m_pS4API->GetLocalPlayer() == party) {
             m_pS4API->RecruitWarriors(buildingid, static_cast<S4_SETTLER_ENUM>(warriortype), amount, party);
         }
@@ -345,9 +347,8 @@ void S4WarriorsLib::RecruitWarriors() {
 void S4WarriorsLib::GarrisonWarriors() {
     auto buildingid = luaL_check_int(1);
     auto party = luaL_check_int(2);
-    auto enforceAI = luaL_check_int(3) or 0;
 
-    if (checkPartyIsHuman(party) && enforceAI != 1) {
+    if (checkPartyIsHuman(party)) {
         if (m_pS4API->GetLocalPlayer() == party) {
             m_pS4API->GarrisonWarriors(buildingid, party);
         }
@@ -363,9 +364,8 @@ void S4WarriorsLib::UnGarrisonWarriors() {
     auto column = luaL_check_int(2);
     auto bowman = luaL_check_int(3);
     auto party = luaL_check_int(4);
-    auto enforceAI = luaL_check_int(5) or 0;
 
-    if (checkPartyIsHuman(party) && enforceAI != 1) {
+    if (checkPartyIsHuman(party)) {
         if (m_pS4API->GetLocalPlayer() == party) {
             m_pS4API->UnGarrisonWarriors(buildingid, column, bowman, party);
         }
@@ -380,9 +380,8 @@ void S4WarriorsLib::SetTradingRoute() {
     auto buildingid_source = luaL_check_int(1);
     auto buildingid_dest = luaL_check_int(2);
     auto party = luaL_check_int(3);
-    auto enforceAI = luaL_check_int(4) or 0;
 
-    if (checkPartyIsHuman(party) && enforceAI != 1) {
+    if (checkPartyIsHuman(party)) {
         if (m_pS4API->GetLocalPlayer() == party) {
             m_pS4API->SetTradingRoute(buildingid_source, buildingid_dest, party);
         }
@@ -399,9 +398,8 @@ void S4WarriorsLib::TradeGood() {
     auto goodtype = luaL_check_int(2);
     auto amount = luaL_check_int(3);
     auto party = luaL_check_int(4);
-    auto enforceAI = luaL_check_int(5) or 0;
 
-    if (checkPartyIsHuman(party) && enforceAI != 1) {
+    if (checkPartyIsHuman(party)) {
         if (m_pS4API->GetLocalPlayer() == party) {
             m_pS4API->TradeGood(buildingid, static_cast<S4_GOOD_ENUM>(goodtype), amount, party);
         }
@@ -417,9 +415,8 @@ void S4WarriorsLib::StoreGood() {
     auto goodtype = luaL_check_int(2);
     auto enable = luaL_check_int(3);
     auto party = luaL_check_int(4);
-    auto enforceAI = luaL_check_int(5) or 0;
 
-    if (checkPartyIsHuman(party) && enforceAI != 1) {
+    if (checkPartyIsHuman(party)) {
         if (m_pS4API->GetLocalPlayer() == party) {
             m_pS4API->StoreGood(buildingid, static_cast<S4_GOOD_ENUM>(goodtype), enable, party);
         }
@@ -435,9 +432,8 @@ void S4WarriorsLib::SetBuildingWorkarea() {
     auto x = luaL_check_int(2);
     auto y = luaL_check_int(3);
     auto party = luaL_check_int(4);
-    auto enforceAI = luaL_check_int(5) or 0;
 
-    if (checkPartyIsHuman(party) && enforceAI != 1) {
+    if (checkPartyIsHuman(party)) {
         if (m_pS4API->GetLocalPlayer() == party) {
             m_pS4API->SetBuildingWorkarea(buildingid, x, y, party);
         }

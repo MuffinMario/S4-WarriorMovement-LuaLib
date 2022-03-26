@@ -4,8 +4,9 @@
 
 # API
 Our Wiki you can find here:
-English: https://docs.settlers-united.com/v/s4-warriorslib-en
-German: https://docs.settlers-united.com/v/s4-warriorslib-de
+
+- English: https://docs.settlers-united.com/v/s4-warriorslib-en
+- German: https://docs.settlers-united.com/v/s4-warriorslib-de
 
 The API consists of a few functions and an enum that contains all possible types of movement
 

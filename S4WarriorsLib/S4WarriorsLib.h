@@ -36,13 +36,17 @@ struct S4WarriorsLib :public IS4ModInterface {
 	/* Lua functions */
 	static void Send();
 	static void SelectWarriors();
-	static void RecruitWarriors();
 	static void isHuman();
-	static void AiRecruitWarriors();
+	static void getPlayerName();
+	static void RecruitWarriors();
 	static void GarrisonWarriors();
 	static void UnGarrisonWarriors();
-	static void AiGarrisonWarriors();
-	static void AiUnGarrisonWarriors();
+	static void SetTradingRoute();
+	static void TradeGood();
+	static void StoreGood();
+	static void SetBuildingWorkarea();
+
+
 private:
 	static HRESULT __stdcall onLuaOpen();
 	static void lua_wmlibopen();

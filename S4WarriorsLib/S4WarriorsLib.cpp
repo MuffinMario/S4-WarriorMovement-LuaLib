@@ -58,6 +58,7 @@ bool initOffsets() {
     g_pMapSize = (DWORD*)(g_s4Base + mapSizeOffsetHE);
     return true;
 }
+
 bool IS4ModInterface::createAPI()
 {
     m_pS4API = S4ApiCreate();
@@ -110,20 +111,22 @@ DETACH_VALUE S4WarriorsLib::onDetach()
 // lib name
 static const char* libName = "WarriorsLib";
 // lib functions
-constexpr size_t libfunccount = 5;
+constexpr size_t libfunccount = 11;
 
 static std::array<struct luaL_reg,
     libfunccount
 > aWarriorsLibArr{ {
     {const_cast<char*>("Send"), S4WarriorsLib::Send},
     {const_cast<char*>("SelectWarriors"), S4WarriorsLib::SelectWarriors},
-    //{const_cast<char*>("isHuman"), S4WarriorsLib::isHuman},
-    //{const_cast<char*>("UnGarrisonWarriors"), S4WarriorsLib::UnGarrisonWarriors},
-    //{const_cast<char*>("GarrisonWarriors"), S4WarriorsLib::GarrisonWarriors},
-    {const_cast<char*>("AiUnGarrisonWarriors"), S4WarriorsLib::AiUnGarrisonWarriors},
-    {const_cast<char*>("AiGarrisonWarriors"), S4WarriorsLib::AiGarrisonWarriors},
-    //{const_cast<char*>("RecruitWarriors"), S4WarriorsLib::RecruitWarriors},
-    {const_cast<char*>("AiRecruitWarriors"), S4WarriorsLib::AiRecruitWarriors}
+    {const_cast<char*>("isHuman"), S4WarriorsLib::isHuman},
+    {const_cast<char*>("getPlayerName"), S4WarriorsLib::getPlayerName},
+    {const_cast<char*>("RecruitWarriors"), S4WarriorsLib::RecruitWarriors},
+    {const_cast<char*>("GarrisonWarriors"), S4WarriorsLib::GarrisonWarriors},
+    {const_cast<char*>("UnGarrisonWarriors"), S4WarriorsLib::UnGarrisonWarriors},
+    {const_cast<char*>("SetTradingRoute"), S4WarriorsLib::SetTradingRoute},
+    {const_cast<char*>("TradeGood"), S4WarriorsLib::TradeGood},
+    {const_cast<char*>("StoreGood"), S4WarriorsLib::StoreGood},
+    {const_cast<char*>("SetBuildingWorkarea"), S4WarriorsLib::SetBuildingWorkarea}
 } };
 std::map<const char*, S4_MOVEMENT_ENUM> aWarriorsLibMovementVars{
     {"MOVE_FORWARDS",S4_MOVEMENT_ENUM::S4_MOVEMENT_FORWARD},
@@ -233,7 +236,6 @@ bool checkPartyIsHuman(int party)
 }
  
 // isHuman(number party)
-// WarriorsLib.isHuman(1)
 void S4WarriorsLib::isHuman() {
     auto party = luaL_check_int(1);
 
@@ -245,70 +247,133 @@ void S4WarriorsLib::isHuman() {
     }
 }
 
-// RecruitWarriors(number buildingid, number warriortype, number amount, number party)
-// WarriorsLib.RecruitWarriors(Buildings.GetFirstBuilding(1, Buildings.BARRACKS), Settlers.SWORDSMAN_03, 5, 1)
+// getPlayerName(number party)
+void S4WarriorsLib::getPlayerName() {
+    auto party = luaL_check_int(1);
+
+    if (checkPartyIsHuman(party)) {
+        //lua_pushstring("na")
+    }
+    else {
+        //lua_pushstring("n/a")
+    }
+}
+
+// RecruitWarriors(number buildingid, number warriortype, number amount, number party, [bool enforceAI])
 void S4WarriorsLib::RecruitWarriors() {  
     auto buildingid = luaL_check_int(1);
     auto warriortype = luaL_check_int(2);
     auto amount = luaL_check_int(3);
     auto party = luaL_check_int(4);
-    if (m_pS4API->GetLocalPlayer() == party) {
+    auto enforceAI = luaL_check_int(5) or 0;
+
+    if (checkPartyIsHuman(party) and enforceAI != 1) {
+        if (m_pS4API->GetLocalPlayer() == party) {
+            m_pS4API->RecruitWarriors(buildingid, static_cast<S4_SETTLER_ENUM>(warriortype), amount, party);
+        }
+    }
+    else {
         m_pS4API->RecruitWarriors(buildingid, static_cast<S4_SETTLER_ENUM>(warriortype), amount, party);
     }
+
 }
 
-// AiRecruitWarriors(number buildingid, number warriortype, number amount, number party)
-// WarriorsLib.AiRecruitWarriors(Buildings.GetFirstBuilding(1, Buildings.BARRACKS), Settlers.SWORDSMAN_03, 5, 1)
-void S4WarriorsLib::AiRecruitWarriors() {
-    auto buildingid = luaL_check_int(1);
-    auto warriortype = luaL_check_int(2);
-    auto amount = luaL_check_int(3);
-    auto party = luaL_check_int(4);
-
-    m_pS4API->RecruitWarriors(buildingid, static_cast<S4_SETTLER_ENUM>(warriortype), amount, party);
-}
 
 // GarrisonWarriors(number buildingid, number party)
-// WarriorsLib.GarrisonWarriors(Buildings.GetFirstBuilding(1, Buildings.GUARDTOWERSMALL), 1)
 void S4WarriorsLib::GarrisonWarriors() {
     auto buildingid = luaL_check_int(1);
     auto party = luaL_check_int(2);
-    if (m_pS4API->GetLocalPlayer() == party) {
+
+    if (checkPartyIsHuman(party)) {
+        if (m_pS4API->GetLocalPlayer() == party) {
+            m_pS4API->GarrisonWarriors(buildingid, party);
+        }
+    }
+    else {
         m_pS4API->GarrisonWarriors(buildingid, party);
     }
 }
 
 // UnGarrisonWarriors(number buildingid, number column, boolean bowman, number party)
-// WarriorsLib.UnGarrisonWarriors(Buildings.GetFirstBuilding(1, Buildings.GUARDTOWERSMALL),-1,1,1) see: https://github.com/nyfrk/S4ModApi/wiki/UnGarrisonWarriors
 void S4WarriorsLib::UnGarrisonWarriors() {
     auto buildingid = luaL_check_int(1);
     auto column = luaL_check_int(2);
     auto bowman = luaL_check_int(3);
     auto party = luaL_check_int(4);
-    if (m_pS4API->GetLocalPlayer() == party) {
+    if (checkPartyIsHuman(party)) {
+        if (m_pS4API->GetLocalPlayer() == party) {
+            m_pS4API->UnGarrisonWarriors(buildingid, column, bowman, party);
+        }
+    }
+    else {
         m_pS4API->UnGarrisonWarriors(buildingid, column, bowman, party);
     }
 }
-// AiGarrisonWarriors(number buildingid, number party)
-// WarriorsLib.AiGarrisonWarriors(Buildings.GetFirstBuilding(1, Buildings.GUARDTOWERSMALL), 1)
-void S4WarriorsLib::AiGarrisonWarriors() {
-    auto buildingid = luaL_check_int(1);
-    auto party = luaL_check_int(2);
-    m_pS4API->GarrisonWarriors(buildingid, party);
+
+// SetTradingRoute(number buildingid_source, number buildingid_dest, number party)
+void S4WarriorsLib::SetTradingRoute() {
+    auto buildingid_source = luaL_check_int(1);
+    auto buildingid_dest = luaL_check_int(2);
+    auto party = luaL_check_int(3);
+
+    if (checkPartyIsHuman(party)) {
+        if (m_pS4API->GetLocalPlayer() == party) {
+            m_pS4API->SetTradingRoute(buildingid_source, buildingid_dest, party);
+        }
+    }
+    else {
+        m_pS4API->SetTradingRoute(buildingid_source, buildingid_dest, party);
+    }
 }
 
-// AiUnGarrisonWarriors(number buildingid, number column, boolean bowman, number party)
-// WarriorsLib.AiUnGarrisonWarriors(Buildings.GetFirstBuilding(1, Buildings.GUARDTOWERSMALL),-1,1,1) see: https://github.com/nyfrk/S4ModApi/wiki/UnGarrisonWarriors
-void S4WarriorsLib::AiUnGarrisonWarriors() {
+
+// TradeGood(number buildingid, number goodtype, number amount, number party)
+void S4WarriorsLib::TradeGood() {
     auto buildingid = luaL_check_int(1);
-    auto column = luaL_check_int(2);
-    auto bowman = luaL_check_int(3);
+    auto goodtype = luaL_check_int(2);
+    auto amount = luaL_check_int(3);
     auto party = luaL_check_int(4);
-
-    m_pS4API->UnGarrisonWarriors(buildingid, column, bowman, party);
-
+    if (checkPartyIsHuman(party)) {
+        if (m_pS4API->GetLocalPlayer() == party) {
+            m_pS4API->TradeGood(buildingid, static_cast<S4_GOOD_ENUM>(goodtype), amount, party);
+        }
+    }
+    else {
+        m_pS4API->TradeGood(buildingid, static_cast<S4_GOOD_ENUM>(goodtype), amount, party);
+    }
 }
 
+// StoreGood(number buildingid, number goodtype, boolean enable, number party)
+void S4WarriorsLib::StoreGood() {
+    auto buildingid = luaL_check_int(1);
+    auto goodtype = luaL_check_int(2);
+    auto enable = luaL_check_int(3);
+    auto party = luaL_check_int(4);
+    if (checkPartyIsHuman(party)) {
+        if (m_pS4API->GetLocalPlayer() == party) {
+            m_pS4API->StoreGood(buildingid, static_cast<S4_GOOD_ENUM>(goodtype), enable, party);
+        }
+    }
+    else {
+        m_pS4API->StoreGood(buildingid, static_cast<S4_GOOD_ENUM>(goodtype), enable, party);
+    }
+}
+
+// SetBuildingWorkarea(number buildingid, number x, number y, number party)
+void S4WarriorsLib::SetBuildingWorkarea() {
+    auto buildingid = luaL_check_int(1);
+    auto x = luaL_check_int(2);
+    auto y = luaL_check_int(3);
+    auto party = luaL_check_int(4);
+    if (checkPartyIsHuman(party)) {
+        if (m_pS4API->GetLocalPlayer() == party) {
+            m_pS4API->SetBuildingWorkarea(buildingid, x, y, party);
+        }
+    }
+    else {
+        m_pS4API->SetBuildingWorkarea(buildingid, x, y, party);
+    }
+}
 
 HRESULT __stdcall S4WarriorsLib::onLuaOpen()
 {

@@ -21,9 +21,6 @@
     <ClInclude Include="pch.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="S4WarriorLib.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="luautils.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -34,6 +31,9 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="S4WarriorsLib.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
@@ -55,7 +55,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="S4WarriorLib.rc">
+    <ResourceCompile Include="S4WarriorsLib.rc">
       <Filter>Ressourcendateien</Filter>
     </ResourceCompile>
   </ItemGroup>

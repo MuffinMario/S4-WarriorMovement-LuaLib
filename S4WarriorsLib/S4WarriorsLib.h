@@ -38,6 +38,7 @@ struct S4WarriorsLib :public IS4ModInterface {
 	static void SelectWarriors();
 	static void RecruitWarriors();
 	static void isHuman();
+	static void getPlayerName();
 	static void AiRecruitWarriors();
 	static void GarrisonWarriors();
 	static void UnGarrisonWarriors();

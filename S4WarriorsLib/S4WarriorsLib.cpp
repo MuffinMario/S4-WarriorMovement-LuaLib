@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "S4WarriorLib.h"
+#include "S4WarriorsLib.h"
 
 #include <array>
 #include <string>
@@ -10,7 +10,7 @@
 
 using namespace std::string_literals;
 S4API IS4ModInterface::m_pS4API;
-S4HOOK S4WarriorLib::m_luaOpenHook = NULL;
+S4HOOK S4WarriorsLib::m_luaOpenHook = NULL;
 
 IEntity*** g_paSettlerPool;
 WORD** g_paEntityMap;
@@ -82,7 +82,7 @@ bool IS4ModInterface::releaseAPI()
     return false;
 }
 
-ATTACH_VALUE S4WarriorLib::onAttach()
+ATTACH_VALUE S4WarriorsLib::onAttach()
 {
 
     if (!createAPI())
@@ -101,7 +101,7 @@ ATTACH_VALUE S4WarriorLib::onAttach()
     return ATTACH_VALUE::SUCCESS;
 }
 
-DETACH_VALUE S4WarriorLib::onDetach()
+DETACH_VALUE S4WarriorsLib::onDetach()
 {
 
     m_pS4API->RemoveListener(m_luaOpenHook);
@@ -113,7 +113,7 @@ DETACH_VALUE S4WarriorLib::onDetach()
 }
 
 // lib name
-static const char* libName = "WarriorLib";
+static const char* libName = "WarriorsLib";
 // lib functions
 constexpr size_t libfunccount = 6;
 
@@ -129,15 +129,16 @@ static std::array<struct luaL_reg,
     //{const_cast<char*>("RecruitWarriors"), S4WarriorLib::RecruitWarriors},
     {const_cast<char*>("AiRecruitWarriors"), S4WarriorLib::AiRecruitWarriors}
 } };
-std::map<const char*, S4_MOVEMENT_ENUM> aWarriorLibMovementVars{
+std::map<const char*, S4_MOVEMENT_ENUM> aWarriorsLibMovementVars{
     {"MOVE_FORWARDS",S4_MOVEMENT_ENUM::S4_MOVEMENT_FORWARD},
     {"MOVE_PATROL",S4_MOVEMENT_ENUM::S4_MOVEMENT_PATROL},
     {"MOVE_ACCUMULATE",S4_MOVEMENT_ENUM::S4_MOVEMENT_ACCUMULATE},
     {"MOVE_WATCH",S4_MOVEMENT_ENUM::S4_MOVEMENT_WATCH},
     {"MOVE_STOP",S4_MOVEMENT_ENUM::S4_MOVEMENT_STOP}
 };
-// WarriorLib.Send(group,to_x,to_y,movementtype);
-void S4WarriorLib::Send()
+
+// WarriorsLib.Send(group,to_x,to_y,movementtype);
+void S4WarriorsLib::Send()
 {
     // param 1
     auto grouptbl = lua_lua2C(1);
@@ -190,7 +191,7 @@ void circle(WORD x, WORD y, WORD radius, WORD mapsize, F func) {
 }
 
 // selectwarriors(number x, number y, number radius, number party, number warriortype)
-void S4WarriorLib::SelectWarriors() {
+void S4WarriorsLib::SelectWarriors() {
     auto x = luaL_check_int(1);
     auto y = luaL_check_int(2);
     auto radius = luaL_check_int(3);
@@ -236,8 +237,8 @@ bool checkPartyIsHuman(int party)
 }
  
 // isHuman(number party)
-// WarriorLib.isHuman(1)
-void S4WarriorLib::isHuman() {
+// WarriorsLib.isHuman(1)
+void S4WarriorsLib::isHuman() {
     auto party = luaL_check_int(1);
 
     if (checkPartyIsHuman(party)) {
@@ -249,8 +250,8 @@ void S4WarriorLib::isHuman() {
 }
 
 // RecruitWarriors(number buildingid, number warriortype, number amount, number party)
-// WarriorLib.RecruitWarriors(Buildings.GetFirstBuilding(1, Buildings.BARRACKS), Settlers.SWORDSMAN_03, 5, 1)
-void S4WarriorLib::RecruitWarriors() {  
+// WarriorsLib.RecruitWarriors(Buildings.GetFirstBuilding(1, Buildings.BARRACKS), Settlers.SWORDSMAN_03, 5, 1)
+void S4WarriorsLib::RecruitWarriors() {  
     auto buildingid = luaL_check_int(1);
     auto warriortype = luaL_check_int(2);
     auto amount = luaL_check_int(3);
@@ -261,8 +262,8 @@ void S4WarriorLib::RecruitWarriors() {
 }
 
 // AiRecruitWarriors(number buildingid, number warriortype, number amount, number party)
-// WarriorLib.AiRecruitWarriors(Buildings.GetFirstBuilding(1, Buildings.BARRACKS), Settlers.SWORDSMAN_03, 5, 1)
-void S4WarriorLib::AiRecruitWarriors() {
+// WarriorsLib.AiRecruitWarriors(Buildings.GetFirstBuilding(1, Buildings.BARRACKS), Settlers.SWORDSMAN_03, 5, 1)
+void S4WarriorsLib::AiRecruitWarriors() {
     auto buildingid = luaL_check_int(1);
     auto warriortype = luaL_check_int(2);
     auto amount = luaL_check_int(3);
@@ -272,8 +273,8 @@ void S4WarriorLib::AiRecruitWarriors() {
 }
 
 // GarrisonWarriors(number buildingid, number party)
-// WarriorLib.GarrisonWarriors(Buildings.GetFirstBuilding(1, Buildings.GUARDTOWERSMALL), 1)
-void S4WarriorLib::GarrisonWarriors() {
+// WarriorsLib.GarrisonWarriors(Buildings.GetFirstBuilding(1, Buildings.GUARDTOWERSMALL), 1)
+void S4WarriorsLib::GarrisonWarriors() {
     auto buildingid = luaL_check_int(1);
     auto party = luaL_check_int(2);
     if (m_pS4API->GetLocalPlayer() == party) {
@@ -282,8 +283,8 @@ void S4WarriorLib::GarrisonWarriors() {
 }
 
 // UnGarrisonWarriors(number buildingid, number column, boolean bowman, number party)
-// WarriorLib.UnGarrisonWarriors(Buildings.GetFirstBuilding(1, Buildings.GUARDTOWERSMALL),-1,1,1) see: https://github.com/nyfrk/S4ModApi/wiki/UnGarrisonWarriors
-void S4WarriorLib::UnGarrisonWarriors() {
+// WarriorsLib.UnGarrisonWarriors(Buildings.GetFirstBuilding(1, Buildings.GUARDTOWERSMALL),-1,1,1) see: https://github.com/nyfrk/S4ModApi/wiki/UnGarrisonWarriors
+void S4WarriorsLib::UnGarrisonWarriors() {
     auto buildingid = luaL_check_int(1);
     auto column = luaL_check_int(2);
     auto bowman = luaL_check_int(3);
@@ -293,16 +294,16 @@ void S4WarriorLib::UnGarrisonWarriors() {
     }
 }
 // AiGarrisonWarriors(number buildingid, number party)
-// WarriorLib.AiGarrisonWarriors(Buildings.GetFirstBuilding(1, Buildings.GUARDTOWERSMALL), 1)
-void S4WarriorLib::AiGarrisonWarriors() {
+// WarriorsLib.AiGarrisonWarriors(Buildings.GetFirstBuilding(1, Buildings.GUARDTOWERSMALL), 1)
+void S4WarriorsLib::AiGarrisonWarriors() {
     auto buildingid = luaL_check_int(1);
     auto party = luaL_check_int(2);
     m_pS4API->GarrisonWarriors(buildingid, party);
 }
 
 // AiUnGarrisonWarriors(number buildingid, number column, boolean bowman, number party)
-// WarriorLib.AiUnGarrisonWarriors(Buildings.GetFirstBuilding(1, Buildings.GUARDTOWERSMALL),-1,1,1) see: https://github.com/nyfrk/S4ModApi/wiki/UnGarrisonWarriors
-void S4WarriorLib::AiUnGarrisonWarriors() {
+// WarriorsLib.AiUnGarrisonWarriors(Buildings.GetFirstBuilding(1, Buildings.GUARDTOWERSMALL),-1,1,1) see: https://github.com/nyfrk/S4ModApi/wiki/UnGarrisonWarriors
+void S4WarriorsLib::AiUnGarrisonWarriors() {
     auto buildingid = luaL_check_int(1);
     auto column = luaL_check_int(2);
     auto bowman = luaL_check_int(3);
@@ -312,25 +313,26 @@ void S4WarriorLib::AiUnGarrisonWarriors() {
 
 }
 
-HRESULT __stdcall S4WarriorLib::onLuaOpen()
+
+HRESULT __stdcall S4WarriorsLib::onLuaOpen()
 {
     g_aSettlerSelections.clear();
     lua_wmlibopen();
     return 0;
 }
 
-void S4WarriorLib::lua_wmlibopen()
+void S4WarriorsLib::lua_wmlibopen()
 {
     lua_Object t = lua_createtable();
     CLuaUtils::push(t);
     lua_setglobal(const_cast<char*>(libName));
 
     //insert functions in table
-    for (auto& red : aWarriorLibArr)
+    for (auto& red : aWarriorsLibArr)
         CLuaUtils::addtableval(lua_getglobal(const_cast<char*>(libName)), red.name, red.func);
 
     //insert move constants in table
-    for (auto& red : aWarriorLibMovementVars)
+    for (auto& red : aWarriorsLibMovementVars)
         CLuaUtils::addtableval(lua_getglobal(const_cast<char*>(libName)), red.first, static_cast<double>(red.second));
 
 }

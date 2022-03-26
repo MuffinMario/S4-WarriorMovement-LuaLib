@@ -305,8 +305,8 @@ std::string WstrToUtf8Str(const std::wstring& wstr)
     }
     return retStr;
 }
+
 // getPlayerName(party)
-// WarriorsLib.getPlayerName(1)
 void S4WarriorsLib::getPlayerName()
 {
     auto party = luaL_check_int(1);
@@ -320,8 +320,8 @@ void S4WarriorsLib::getPlayerName()
         lua_pushstring(const_cast<char*>(playerUTF8Username[party].c_str()));
     }
 }
+
 // RecruitWarriors(number buildingid, number warriortype, number amount, number party)
-// WarriorsLib.RecruitWarriors(Buildings.GetFirstBuilding(1, Buildings.BARRACKS), Settlers.SWORDSMAN_03, 5, 1)
 void S4WarriorsLib::RecruitWarriors() {  
     auto buildingid = luaL_check_int(1);
     auto warriortype = luaL_check_int(2);
@@ -329,7 +329,7 @@ void S4WarriorsLib::RecruitWarriors() {
     auto party = luaL_check_int(4);
     auto enforceAI = luaL_check_int(5) or 0;
 
-    if (checkPartyIsHuman(party) and enforceAI != 1) {
+    if (checkPartyIsHuman(party) && enforceAI != 1) {
         if (m_pS4API->GetLocalPlayer() == party) {
             m_pS4API->RecruitWarriors(buildingid, static_cast<S4_SETTLER_ENUM>(warriortype), amount, party);
         }
@@ -345,8 +345,9 @@ void S4WarriorsLib::RecruitWarriors() {
 void S4WarriorsLib::GarrisonWarriors() {
     auto buildingid = luaL_check_int(1);
     auto party = luaL_check_int(2);
+    auto enforceAI = luaL_check_int(3) or 0;
 
-    if (checkPartyIsHuman(party)) {
+    if (checkPartyIsHuman(party) && enforceAI != 1) {
         if (m_pS4API->GetLocalPlayer() == party) {
             m_pS4API->GarrisonWarriors(buildingid, party);
         }
@@ -362,7 +363,9 @@ void S4WarriorsLib::UnGarrisonWarriors() {
     auto column = luaL_check_int(2);
     auto bowman = luaL_check_int(3);
     auto party = luaL_check_int(4);
-    if (checkPartyIsHuman(party)) {
+    auto enforceAI = luaL_check_int(5) or 0;
+
+    if (checkPartyIsHuman(party) && enforceAI != 1) {
         if (m_pS4API->GetLocalPlayer() == party) {
             m_pS4API->UnGarrisonWarriors(buildingid, column, bowman, party);
         }
@@ -377,8 +380,9 @@ void S4WarriorsLib::SetTradingRoute() {
     auto buildingid_source = luaL_check_int(1);
     auto buildingid_dest = luaL_check_int(2);
     auto party = luaL_check_int(3);
+    auto enforceAI = luaL_check_int(4) or 0;
 
-    if (checkPartyIsHuman(party)) {
+    if (checkPartyIsHuman(party) && enforceAI != 1) {
         if (m_pS4API->GetLocalPlayer() == party) {
             m_pS4API->SetTradingRoute(buildingid_source, buildingid_dest, party);
         }
@@ -395,7 +399,9 @@ void S4WarriorsLib::TradeGood() {
     auto goodtype = luaL_check_int(2);
     auto amount = luaL_check_int(3);
     auto party = luaL_check_int(4);
-    if (checkPartyIsHuman(party)) {
+    auto enforceAI = luaL_check_int(5) or 0;
+
+    if (checkPartyIsHuman(party) && enforceAI != 1) {
         if (m_pS4API->GetLocalPlayer() == party) {
             m_pS4API->TradeGood(buildingid, static_cast<S4_GOOD_ENUM>(goodtype), amount, party);
         }
@@ -411,7 +417,9 @@ void S4WarriorsLib::StoreGood() {
     auto goodtype = luaL_check_int(2);
     auto enable = luaL_check_int(3);
     auto party = luaL_check_int(4);
-    if (checkPartyIsHuman(party)) {
+    auto enforceAI = luaL_check_int(5) or 0;
+
+    if (checkPartyIsHuman(party) && enforceAI != 1) {
         if (m_pS4API->GetLocalPlayer() == party) {
             m_pS4API->StoreGood(buildingid, static_cast<S4_GOOD_ENUM>(goodtype), enable, party);
         }
@@ -427,7 +435,9 @@ void S4WarriorsLib::SetBuildingWorkarea() {
     auto x = luaL_check_int(2);
     auto y = luaL_check_int(3);
     auto party = luaL_check_int(4);
-    if (checkPartyIsHuman(party)) {
+    auto enforceAI = luaL_check_int(5) or 0;
+
+    if (checkPartyIsHuman(party) && enforceAI != 1) {
         if (m_pS4API->GetLocalPlayer() == party) {
             m_pS4API->SetBuildingWorkarea(buildingid, x, y, party);
         }

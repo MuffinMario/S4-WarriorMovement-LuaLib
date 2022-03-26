@@ -12,13 +12,39 @@ using namespace std::string_literals;
 S4API IS4ModInterface::m_pS4API;
 S4HOOK S4WarriorsLib::m_luaOpenHook = NULL;
 
+struct CPlayerMetadata {
+    void* baseObj;
+    DWORD race;
+    DWORD startPosX;
+    DWORD startPosY;
+    DWORD unknown2;
+    DWORD unknown4; // 0xFFFFFFFF or 0x0
+    DWORD playerColor;
+    wchar_t* playerName;
+    DWORD unknown6;
+    DWORD unknown7;
+    DWORD unknown8;
+    DWORD playerNameLength; 
+    DWORD unknown9; // something determining the player name length?
+    DWORD unknown10;
+    DWORD unknown11;
+};
+static_assert(sizeof(CPlayerMetadata) == 0x3C, "CPlayerMetadata is not 0x3C bytes");
+
 IEntity*** g_paSettlerPool;
 WORD** g_paEntityMap;
 DWORD* g_pMapSize;
+DWORD* g_pAIPartiesBitflags;
+CPlayerMetadata* g_aPlayerMetadata;
 //offsets, all HE because bruh imagine GE
 constexpr size_t entityPoolOffsetHE = 0xECDE9;
 constexpr size_t entityMapOffsetHE = 0x11630DC;
 constexpr size_t mapSizeOffsetHE = 0xD6921C;
+// thx 2 jhnp
+constexpr size_t aiPartiesBitflagsOffsetHE = 0x106B150;
+// thx 2 kdsystem
+constexpr size_t aPlayerMetadataOffset = 0x109B628-0x1c-0x3C; // player 0 is empty dummy with random adress in the middle (hopefully not vtable and im mixing stuff up)
+
 
 class CSelection {
 public:
@@ -53,9 +79,12 @@ bool initOffsets() {
     g_s4Base = (DWORD)GetModuleHandle(nullptr);
     if (!g_s4Base) return false;
 
-    g_paSettlerPool = (IEntity***)(g_s4Base + entityPoolOffsetHE); // all types are 32-bit on most common compilers at least
-    g_paEntityMap = (WORD**)(g_s4Base + entityMapOffsetHE);
-    g_pMapSize = (DWORD*)(g_s4Base + mapSizeOffsetHE);
+    g_paSettlerPool = reinterpret_cast<IEntity***>(g_s4Base + entityPoolOffsetHE); // all types are 32-bit on most common compilers at least
+    g_paEntityMap = reinterpret_cast<WORD**>(g_s4Base + entityMapOffsetHE);
+    g_pMapSize = reinterpret_cast<DWORD*>(g_s4Base + mapSizeOffsetHE);
+    g_pAIPartiesBitflags = reinterpret_cast<DWORD*>(g_s4Base + aiPartiesBitflagsOffsetHE);
+    g_aPlayerMetadata = reinterpret_cast<CPlayerMetadata*>(g_s4Base + aPlayerMetadataOffset);
+
     return true;
 }
 
@@ -114,8 +143,7 @@ static const char* libName = "WarriorsLib";
 constexpr size_t libfunccount = 11;
 
 static std::array<struct luaL_reg,
-    libfunccount
-> aWarriorsLibArr{ {
+    libfunccount> aWarriorsLibArr{ {
     {const_cast<char*>("Send"), S4WarriorsLib::Send},
     {const_cast<char*>("SelectWarriors"), S4WarriorsLib::SelectWarriors},
     {const_cast<char*>("isHuman"), S4WarriorsLib::isHuman},
@@ -229,9 +257,9 @@ void S4WarriorsLib::SelectWarriors() {
 
 bool checkPartyIsHuman(int party)
 {
-    //DWORD aiPlayerBitmask = *reinterpret_cast<DWORD*>(S4_MAIN_ADDRESS + 0x146b150 - 0x400000);
-    //bool isAi = (aiPlayerBitmask & (1 << party)) != 0;
-    //return isAi;
+    if (*g_pAIPartiesBitflags & (1 <<party)) {
+        return false;
+    }
     return true;
 }
  
@@ -247,19 +275,53 @@ void S4WarriorsLib::isHuman() {
     }
 }
 
-// getPlayerName(number party)
-void S4WarriorsLib::getPlayerName() {
-    auto party = luaL_check_int(1);
+// https://stackoverflow.com/questions/21456926/how-do-i-convert-a-string-in-utf-16-to-utf-8-in-c
+std::string WstrToUtf8Str(const std::wstring& wstr)
+{
+    std::string retStr;
+    if (!wstr.empty())
+    {
+        int sizeRequired = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, NULL, 0, NULL, NULL);
 
-    if (checkPartyIsHuman(party)) {
-        //lua_pushstring("na")
+        if (sizeRequired > 0)
+        {
+            std::vector<char> utf8String(sizeRequired);
+            int bytesConverted = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(),
+                -1, &utf8String[0], utf8String.size(), NULL,
+                NULL);
+            if (bytesConverted != 0)
+            {
+                retStr = &utf8String[0];
+            }
+            else
+            {
+                std::stringstream err;
+                err << __FUNCTION__
+                    << " std::string WstrToUtf8Str failed to convert wstring '"
+                    << wstr.c_str() << L"'";
+                throw std::runtime_error(err.str());
+            }
+        }
     }
-    else {
-        //lua_pushstring("n/a")
+    return retStr;
+}
+// getPlayerName(party)
+// WarriorsLib.getPlayerName(1)
+void S4WarriorsLib::getPlayerName()
+{
+    auto party = luaL_check_int(1);
+    if (party >= 1 && party <= m_pS4API->GetNumberOfPlayers())
+    {
+        // we have no reliable way to instanciate UTF8 names at start (onluaopen untested), so.. yeah
+        static std::string playerUTF8Username[9];
+        std::wstring s = g_aPlayerMetadata[party].playerName;
+        playerUTF8Username[party] = WstrToUtf8Str(s);
+
+        lua_pushstring(const_cast<char*>(playerUTF8Username[party].c_str()));
     }
 }
-
-// RecruitWarriors(number buildingid, number warriortype, number amount, number party, [bool enforceAI])
+// RecruitWarriors(number buildingid, number warriortype, number amount, number party)
+// WarriorsLib.RecruitWarriors(Buildings.GetFirstBuilding(1, Buildings.BARRACKS), Settlers.SWORDSMAN_03, 5, 1)
 void S4WarriorsLib::RecruitWarriors() {  
     auto buildingid = luaL_check_int(1);
     auto warriortype = luaL_check_int(2);

@@ -28,6 +28,9 @@ The functions:
 - WarriorsLib.getPlayerName(player)
    - Return the PlayerName of the given Player. 
 
+- WarriorsLib.isHuman(player)
+   - Indicates whether the player is controlled by a human
+
 - WarriorsLib.RecruitWarriors(buildingID, settlertype, amount, player)
    - Let a building start or stop recruiting settlers. 
    - settlertype: for example Settlers.SWORDSMAN_01 or Settlers.BOWMAN_03

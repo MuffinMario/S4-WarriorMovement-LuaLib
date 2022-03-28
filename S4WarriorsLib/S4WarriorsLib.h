@@ -44,6 +44,7 @@ struct S4WarriorsLib :public IS4ModInterface {
 	static void SetTradingRoute();
 	static void TradeGood();
 	static void StoreGood();
+	static void GetBuildingIdAt();
 	static void SetBuildingWorkarea();
 
 

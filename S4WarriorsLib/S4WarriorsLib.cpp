@@ -12,6 +12,26 @@ using namespace std::string_literals;
 S4API IS4ModInterface::m_pS4API;
 S4HOOK S4WarriorsLib::m_luaOpenHook = NULL;
 
+typedef struct wstr_struct {
+    union {
+        wchar_t value[8];
+        struct {
+            wchar_t* pValue;
+            BYTE gap[12];
+        };
+    };
+    DWORD capacity;
+    DWORD length;
+
+    [[nodiscard]] const wchar_t* c_str() const {
+        if (length < 8u) {
+            return this->value;
+        }
+
+        return this->pValue;
+    }
+} wstr_struct;
+
 struct CPlayerMetadata {
     void* baseObj;
     DWORD race;
@@ -20,12 +40,7 @@ struct CPlayerMetadata {
     DWORD unknown2;
     DWORD unknown4; // 0xFFFFFFFF or 0x0
     DWORD playerColor;
-    wchar_t* playerName;
-    DWORD unknown6;
-    DWORD unknown7;
-    DWORD unknown8;
-    DWORD playerNameLength; 
-    DWORD unknown9; // something determining the player name length?
+    wstr_struct playerName;
     DWORD unknown10;
     DWORD unknown11;
 };
@@ -143,7 +158,7 @@ DETACH_VALUE S4WarriorsLib::onDetach() {
 // lib name
 static const char* libName = "WarriorsLib";
 // lib functions
-constexpr size_t libfunccount = 11;
+constexpr size_t libfunccount = 12;
 
 static std::array<struct luaL_reg,
     libfunccount> aWarriorsLibArr{ {
@@ -157,6 +172,7 @@ static std::array<struct luaL_reg,
     {const_cast<char*>("SetTradingRoute"), S4WarriorsLib::SetTradingRoute},
     {const_cast<char*>("TradeGood"), S4WarriorsLib::TradeGood},
     {const_cast<char*>("StoreGood"), S4WarriorsLib::StoreGood},
+    {const_cast<char*>("GetBuildingIdAt"), S4WarriorsLib::GetBuildingIdAt},
     {const_cast<char*>("SetBuildingWorkarea"), S4WarriorsLib::SetBuildingWorkarea}
 } };
 std::map<const char*, S4_MOVEMENT_ENUM> aWarriorsLibMovementVars{
@@ -259,7 +275,7 @@ void S4WarriorsLib::SelectWarriors() {
 
 bool checkPartyIsHuman(int party) {
     if (g_pIsAI(party)) 
-           return false;
+        return false;
     if (*g_pAIPartiesBitflags & (1 << party))
         return false;
     return true;
@@ -317,7 +333,7 @@ void S4WarriorsLib::getPlayerName()
     {
         // we have no reliable way to instanciate UTF8 names at start (onluaopen untested), so.. yeah
         static std::string playerUTF8Username[9];
-        std::wstring s = g_aPlayerMetadata[party].playerName;
+        std::wstring s = g_aPlayerMetadata[party].playerName.c_str();
         playerUTF8Username[party] = WstrToUtf8Str(s);
 
         lua_pushstring(const_cast<char*>(playerUTF8Username[party].c_str()));
@@ -442,6 +458,22 @@ void S4WarriorsLib::SetBuildingWorkarea() {
         m_pS4API->SetBuildingWorkarea(buildingid, x, y, party);
     }
 }
+
+auto GetBuildingID(WORD x, WORD y) {
+    auto pEntity = S4ModApi::GetEntityAt(x, y);
+    if (pEntity && pEntity->GetClass() == S4_ENTITY_ENUM::S4_ENTITY_BUILDING)
+        return pEntity->id;
+    else
+        return 0UL;
+}
+
+void S4WarriorsLib::GetBuildingIdAt() {
+    auto x = luaL_check_int(1);
+    auto y = luaL_check_int(2);
+    
+    lua_pushnumber(GetBuildingID(x,y));
+}
+
 
 HRESULT __stdcall S4WarriorsLib::onLuaOpen()
 {

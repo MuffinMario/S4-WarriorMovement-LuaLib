@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "S4ModApi.h"
+
 enum class ATTACH_VALUE {
 	SUCCESS = 0,
 	FAILED_COULD_NOT_CREATE_API_PTR,
@@ -14,6 +14,7 @@ enum class DETACH_VALUE {
 	FAILED_COULD_NOT_RELEASE_API_PTR,
 	FAILED_UNKNOWN
 };
+
 struct IS4ModInterface {
 	virtual ATTACH_VALUE onAttach() = 0;
 	virtual DETACH_VALUE onDetach() = 0;

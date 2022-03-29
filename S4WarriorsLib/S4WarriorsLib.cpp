@@ -183,19 +183,25 @@ std::map<const char*, S4_MOVEMENT_ENUM> aWarriorsLibMovementVars{
     {"MOVE_STOP",S4_MOVEMENT_ENUM::S4_MOVEMENT_STOP}
 };
 
+std::map<const char*, const char*> aWarriorsLibVars{
+    {"VERSION", "1.3.1"},
+    {"MAJOR_VERSION", "1"},
+    {"MINOR_VERSION", "3"},
+    {"AUTHOR", "MuffinMario & Gemil"}
+};
 // WarriorsLib.Send(group,to_x,to_y,movementtype);
 void S4WarriorsLib::Send() {
     // param 1
     auto grouptbl = lua_lua2C(1);
-    int x = luaL_check_int(2);
-    int y = luaL_check_int(3);
+    unsigned int x = luaL_check_int(2);
+    unsigned int y = luaL_check_int(3);
     DWORD movementType = S4_MOVEMENT_FORWARD;
     auto param4 = lua_lua2C(4);
 
     if (lua_isnumber(param4))
-        movementType = lua_getnumber(param4);
+        movementType = (DWORD)lua_getnumber(param4);
     if (lua_isnumber(grouptbl)) {
-        CSelection& selection = g_aSettlerSelections.at(lua_getnumber(grouptbl));
+        CSelection& selection = g_aSettlerSelections.at((unsigned int)lua_getnumber(grouptbl));
         m_pS4API->SendWarriors(x, y, static_cast<S4_MOVEMENT_ENUM>(movementType), selection.m_aIds.data(), selection.m_aIds.size(), 0);
     }
     // do nothing?
@@ -220,12 +226,12 @@ void circle(WORD x, WORD y, WORD radius, WORD mapsize, F func) {
         unsigned int cy = yorig + r - i;
 
         // this and the following lines will be out of map
-        if (cy >= mapsize - 1) break;
+        if (cy >= unsigned(mapsize - 1)) break;
 
         // don't care aobut the ones left from this.
         if (cx < 1) cx = 1;
 
-        while (cx <= xorig + right && cx < mapsize - 1) {
+        while (cx <= xorig + right && cx < unsigned(mapsize - 1)) {
             func(cx, cy);
             ++cx;
         }
@@ -237,15 +243,15 @@ void circle(WORD x, WORD y, WORD radius, WORD mapsize, F func) {
 
 // selectwarriors(number x, number y, number radius, number party, number warriortype)
 void S4WarriorsLib::SelectWarriors() {
-    auto x = luaL_check_int(1);
-    auto y = luaL_check_int(2);
-    auto radius = luaL_check_int(3);
-    auto party = luaL_check_int(4);
-    auto warriortype = luaL_check_int(5);
+    unsigned int x = luaL_check_int(1);
+    unsigned int y = luaL_check_int(2);
+    unsigned int radius = luaL_check_int(3);
+    unsigned int party = luaL_check_int(4);
+    DWORD warriortype = luaL_check_int(5);
 
     CSelection& newSelection = g_aSettlerSelections.emplace_back();
 
-    auto TableAppendInt = [](CSelection& const sel, int v) {
+    auto TableAppendInt = [](CSelection& sel, int v) {
         sel.m_aIds.push_back(v);
     };
     auto CircleSelectWarriors = [&warriortype, &party, TableAppendInt](WORD x, WORD y) -> void {
@@ -263,7 +269,7 @@ void S4WarriorsLib::SelectWarriors() {
             }
         }
     };
-    circle(x, y, radius, S4ModApi::GetMapSize(), CircleSelectWarriors);
+    circle(x, y, radius, (WORD)S4ModApi::GetMapSize(), CircleSelectWarriors);
     if (newSelection.m_aIds.size() == 0)
     {
         g_aSettlerSelections.pop_back();
@@ -329,7 +335,7 @@ std::string WstrToUtf8Str(const std::wstring& wstr)
 void S4WarriorsLib::getPlayerName()
 {
     auto party = luaL_check_int(1);
-    if (party >= 1 && party <= m_pS4API->GetNumberOfPlayers())
+    if (party >= 1 && unsigned(party) <= (m_pS4API->GetNumberOfPlayers()))
     {
         // we have no reliable way to instanciate UTF8 names at start (onluaopen untested), so.. yeah
         static std::string playerUTF8Username[9];
@@ -467,6 +473,7 @@ auto GetBuildingID(WORD x, WORD y) {
         return 0UL;
 }
 
+// GetBuildingIdAt(number x, number y)
 void S4WarriorsLib::GetBuildingIdAt() {
     auto x = luaL_check_int(1);
     auto y = luaL_check_int(2);
@@ -496,4 +503,7 @@ void S4WarriorsLib::lua_wmlibopen()
     for (auto& red : aWarriorsLibMovementVars)
         CLuaUtils::addtableval(lua_getglobal(const_cast<char*>(libName)), red.first, static_cast<double>(red.second));
 
+    //insert other constants in table
+    for (auto& red : aWarriorsLibVars)
+        CLuaUtils::addtableval(lua_getglobal(const_cast<char*>(libName)), red.first, const_cast<char*>(red.second));
 }

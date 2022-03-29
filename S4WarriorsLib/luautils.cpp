@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "luautils.h"
-#include "S4ModApi.h"
 
 void CLuaUtils::push(double v)
 {

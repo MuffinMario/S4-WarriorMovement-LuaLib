@@ -10,13 +10,24 @@ Our Wiki you can find here:
 
 The API consists of a few functions and an enum that contains all possible types of movement
 
-The enum:
+The enums:
 - Movementtype values:
     - WarriorsLib.MOVE_FORWARDS: move units as you would do via right click
     - WarriorsLib.MOVE_PATROL: send units on a patrol between their starting point and the point given
     - WarriorsLib.MOVE_ACCUMULATE: Create paths for units to move (MOVE_FORWARD queue, basically)
     - WarriorsLib.MOVE_WATCH: move units as you would do via ALT + right click
     - WarriorsLib.MOVE_STOP: Stop a group of units, x,y passed to this action do not matter.
+- Resource type values:
+    - WarriorsLib.Resources.FISH        
+    - WarriorsLib.Resources.COAL_ORE    
+    - WarriorsLib.Resources.IRON_ORE    
+    - WarriorsLib.Resources.GOLD_ORE    
+    - WarriorsLib.Resources.SULFUR_ORE  
+    - WarriorsLib.Resources.STONE_ORE   
+    - WarriorsLib.Resources.STONE       
+    - WarriorsLib.Resources.WOOD        
+   
+
 
 The functions: 
 - WarriorsLib.SelectWarriors(x, y, r, player, settlertype)
@@ -67,7 +78,13 @@ The functions:
  
  - WarriorsLib.SetBuildingWorkarea(buildingID, x, y, player)
    - Set the work area for a building. This is the same event that players can issue by clicking the target icon in the side panel of a selected building.
- 
+	
+ - WarriorsLib.GetResourceCountInArea(x, y, radius[, resourceType])
+   - Returns the amount of resources (if given, of a specific resourceType) in an area 
+
+- WarriorsLib.GetResourceCountAt(x, y[, resourceType])
+   - Returns the amount of resources at specific location
+
 # Tipp
 Example to check within new_game() if WarriorsLib is installed by the user
 

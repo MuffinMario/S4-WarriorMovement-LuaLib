@@ -47,6 +47,9 @@ struct S4WarriorsLib :public IS4ModInterface {
 	static void StoreGood();
 	static void GetBuildingIdAt();
 	static void SetBuildingWorkarea();
+	static void GetResourceCountInArea();
+	static void GetResourceCountAt();
+
 
 
 private:

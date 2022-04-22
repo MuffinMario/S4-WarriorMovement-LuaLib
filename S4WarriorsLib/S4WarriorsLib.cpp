@@ -32,7 +32,7 @@ typedef struct wstr_struct {
     }
 } wstr_struct;
 
-struct CPlayerMetadata {
+struct SPlayerMetadata {
     void* baseObj;
     DWORD race;
     DWORD startPosX;
@@ -44,26 +44,57 @@ struct CPlayerMetadata {
     DWORD unknown10;
     DWORD unknown11;
 };
-static_assert(sizeof(CPlayerMetadata) == 0x3C, "CPlayerMetadata is not 0x3C bytes");
+enum class EResourceType :uint8_t {
+    FISH,
+    COAL_ORE,
+    IRON_ORE,
+    GOLD_ORE,
+    SULFUR_ORE,
+    STONE_ORE,
+    //this will overwrite the resource ore "underneath it". Also explains why stone cutter/wood cutter don't work on mountains I guess
+    STONE,
+    WOOD
+};
+struct SResource {
+    uint8_t m_resourceData;
+
+    EResourceType getResourceType() {
+        return static_cast<EResourceType>((m_resourceData & 0xF0) >> 4);
+    }
+    uint8_t getResourceCount() {
+        return m_resourceData & 0xF;
+    }
+    void setResourceType(EResourceType type) {
+        m_resourceData = (m_resourceData & 0x0F) | static_cast<uint8_t>(type) & 0xF0;
+    }
+    void setResourceCount(uint8_t count) {
+        m_resourceData = (m_resourceData & 0xF0) | count & 0x0F;
+    }
+};
+static_assert(sizeof(SPlayerMetadata) == 0x3C, "SPlayerMetadata is not 0x3C bytes");
 typedef bool(__fastcall* IS_AI_PROC)(int player);
 
-IEntity*** g_paSettlerPool;
+IEntity*** g_paEntityPool;
+SResource** g_paResourceMap;
+size_t* g_pEntityPoolMaxOccupation;
 WORD** g_paEntityMap;
 DWORD* g_pMapSize;
 DWORD* g_pAIPartiesBitflags;
-CPlayerMetadata* g_aPlayerMetadata;
+SPlayerMetadata* g_aPlayerMetadata;
 IS_AI_PROC g_pIsAI;
+DWORD g_s4Base = NULL;
 
 //offsets, all HE because bruh imagine GE
 constexpr size_t entityPoolOffsetHE = 0xECDE9;
+constexpr size_t entityPoolMaxOccupationHE = 0xE9B0BC;
 constexpr size_t entityMapOffsetHE = 0x11630DC;
 constexpr size_t mapSizeOffsetHE = 0xD6921C;
+constexpr size_t paResourceMapOffsetHE = 0x11630E4;
 // thx 2 jhnp
 constexpr size_t aiPartiesBitflagsOffsetHE = 0x106B150;
 constexpr size_t IsAi = 0x4F7A40 - 0x400000;
 // thx 2 kdsystem
 constexpr size_t aPlayerMetadataOffset = 0x109B628-0x1c-0x3C; // player 0 is empty dummy with random adress in the middle (hopefully not vtable and im mixing stuff up)
-
 
 
 class CSelection {
@@ -85,27 +116,41 @@ namespace S4ModApi {
         return 0;
     }
     IEntity* GetEntityAt(WORD x, WORD y) {
-        if (g_paSettlerPool && *g_paSettlerPool) {
+        if (g_paEntityPool && *g_paEntityPool) {
             auto eid = GetEntityIdAt(x, y);
             if (eid) {
-                return (*g_paSettlerPool)[eid];
+                return (*g_paEntityPool)[eid];
             }
         }
         return NULL;
     }
 }
-DWORD g_s4Base = NULL;
+
+template<typename Func>
+void foreachEntities(Func f) {
+    for (int i = 0; i < *g_pEntityPoolMaxOccupation; i++)
+    {
+        IEntity* pEnt = (*g_paEntityPool)[i];
+        if (pEnt)
+        {
+            if (f(pEnt))
+                break;
+        }
+    }
+}
 
 bool initOffsets() {
     g_s4Base = (DWORD)GetModuleHandle(nullptr);
     if (!g_s4Base) return false;
 
-    g_paSettlerPool = reinterpret_cast<IEntity***>(g_s4Base + entityPoolOffsetHE); // all types are 32-bit on most common compilers at least
+    g_paEntityPool = reinterpret_cast<IEntity***>(g_s4Base + entityPoolOffsetHE); // all types are 32-bit on most common compilers at least
+    g_pEntityPoolMaxOccupation = reinterpret_cast<size_t*>(g_s4Base + entityPoolMaxOccupationHE); // all types are 32-bit on most common compilers at least
     g_paEntityMap = reinterpret_cast<WORD**>(g_s4Base + entityMapOffsetHE);
     g_pMapSize = reinterpret_cast<DWORD*>(g_s4Base + mapSizeOffsetHE);
     g_pAIPartiesBitflags = reinterpret_cast<DWORD*>(g_s4Base + aiPartiesBitflagsOffsetHE);
-    g_aPlayerMetadata = reinterpret_cast<CPlayerMetadata*>(g_s4Base + aPlayerMetadataOffset);
+    g_aPlayerMetadata = reinterpret_cast<SPlayerMetadata*>(g_s4Base + aPlayerMetadataOffset);
     g_pIsAI = reinterpret_cast<IS_AI_PROC>(g_s4Base + IsAi);
+    g_paResourceMap = reinterpret_cast<SResource**>(g_s4Base + paResourceMapOffsetHE);
 
     return true;
 }
@@ -155,12 +200,12 @@ DETACH_VALUE S4WarriorsLib::onDetach() {
     return DETACH_VALUE::SUCCESS;
 }
 
-// lib name
+// lib/table names
 static const char* libName = "WarriorsLib";
+static const char* resourceTableName = "Resources";
 // lib functions
-constexpr size_t libfunccount = 12;
-
-static std::array<struct luaL_reg,
+constexpr size_t libfunccount = 14;
+static const std::array<struct luaL_reg,
     libfunccount> aWarriorsLibArr{ {
     {const_cast<char*>("Send"), S4WarriorsLib::Send},
     {const_cast<char*>("SelectWarriors"), S4WarriorsLib::SelectWarriors},
@@ -173,20 +218,32 @@ static std::array<struct luaL_reg,
     {const_cast<char*>("TradeGood"), S4WarriorsLib::TradeGood},
     {const_cast<char*>("StoreGood"), S4WarriorsLib::StoreGood},
     {const_cast<char*>("GetBuildingIdAt"), S4WarriorsLib::GetBuildingIdAt},
-    {const_cast<char*>("SetBuildingWorkarea"), S4WarriorsLib::SetBuildingWorkarea}
+    {const_cast<char*>("SetBuildingWorkarea"), S4WarriorsLib::SetBuildingWorkarea},
+    {const_cast<char*>("GetResourceCountAt"), S4WarriorsLib::GetResourceCountAt},
+    {const_cast<char*>("GetResourceCountInArea"), S4WarriorsLib::GetResourceCountInArea}
 } };
-std::map<const char*, S4_MOVEMENT_ENUM> aWarriorsLibMovementVars{
+const std::map<const char*, S4_MOVEMENT_ENUM> aWarriorsLibMovementVars{
     {"MOVE_FORWARDS",S4_MOVEMENT_ENUM::S4_MOVEMENT_FORWARD},
     {"MOVE_PATROL",S4_MOVEMENT_ENUM::S4_MOVEMENT_PATROL},
     {"MOVE_ACCUMULATE",S4_MOVEMENT_ENUM::S4_MOVEMENT_ACCUMULATE},
     {"MOVE_WATCH",S4_MOVEMENT_ENUM::S4_MOVEMENT_WATCH},
     {"MOVE_STOP",S4_MOVEMENT_ENUM::S4_MOVEMENT_STOP}
 };
+const std::map<const char*, EResourceType> aResourceTypeValues{
+    {"FISH",        EResourceType::FISH},
+    {"COAL_ORE",    EResourceType::COAL_ORE},
+    {"IRON_ORE",    EResourceType::IRON_ORE},
+    {"GOLD_ORE",    EResourceType::GOLD_ORE},
+    {"SULFUR_ORE",  EResourceType::SULFUR_ORE},
+    {"STONE_ORE",   EResourceType::STONE_ORE},
+    {"STONE",       EResourceType::STONE},
+    {"WOOD",        EResourceType::WOOD}
+};
 
-std::map<const char*, const char*> aWarriorsLibVars{
-    {"VERSION", "1.3.1"},
+const std::map<const char*, const char*> aWarriorsLibVars{
+    {"VERSION", "1.4.0"},
     {"MAJOR_VERSION", "1"},
-    {"MINOR_VERSION", "3"},
+    {"MINOR_VERSION", "4"},
     {"AUTHOR", "MuffinMario & Gemil"}
 };
 // WarriorsLib.Send(group,to_x,to_y,movementtype);
@@ -209,21 +266,28 @@ void S4WarriorsLib::Send() {
     //    lua_error((char*)"Send called with wrong type (not number/table)");
 }
 
+
+/*
+    This will call func(x,y) at every pos in a circle, will ignore the outmost outer edges (rectangle (0,0) (mapsize-1,mapsize-1))
+*/
 template <typename F, typename... P>
 void circle(WORD x, WORD y, WORD radius, WORD mapsize, F func) {
-    unsigned int r = radius;
-    unsigned int xorig = x, yorig = y;
+    // INT to prevent arithmetic underflow
 
-    unsigned int its = 2 * r - 1;
+    int r = radius;
+    int xorig = x, yorig = y;
+
+    int its = 2 * r - 1;
     //    basically 
     //
     //      LLX
     //     LLXRR
     //      XRR
-    unsigned int left = r - 1, right = 0;
-    for (unsigned int i = its; i > 0; --i) {
-        unsigned int cx = xorig - left;
-        unsigned int cy = yorig + r - i;
+    int left = r - 1, right = 0;
+    for (int i = its; i > 0; --i) {
+#undef max
+        int cx = xorig - left;
+        int cy = yorig + r - i;
 
         // this and the following lines will be out of map
         if (cy >= unsigned(mapsize - 1)) break;
@@ -430,7 +494,58 @@ void S4WarriorsLib::TradeGood() {
         m_pS4API->TradeGood(buildingid, static_cast<S4_GOOD_ENUM>(goodtype), amount, party);
     }
 }
-
+void S4WarriorsLib::GetResourceCountInArea()
+{
+    if (g_paResourceMap && *g_paResourceMap && g_pMapSize)
+    {
+        auto x = luaL_check_int(1);
+        auto y = luaL_check_int(2);
+        auto r = luaL_check_int(3);
+        auto type = lua_lua2C(4);
+        bool typeisNum = lua_isnumber(type);
+        EResourceType typeParam;
+        if(typeisNum)
+            typeParam = static_cast<EResourceType>(lua_getnumber(type));
+        uint32_t count = 0U;
+        circle(x, y, r, *g_pMapSize,
+            [&typeisNum, &count, &typeParam](const int& cx, const int& cy) {
+                if (typeisNum)
+                {
+                    if (static_cast<EResourceType>(typeParam) == (*g_paResourceMap)[cx + cy * (*g_pMapSize)].getResourceType())
+                        count += static_cast<uint8_t>((*g_paResourceMap)[cx + cy * (*g_pMapSize)].getResourceCount());
+                }
+                else {
+                    count += static_cast<uint8_t>((*g_paResourceMap)[cx + cy * (*g_pMapSize)].getResourceCount());
+                }
+            }
+        );
+        lua_pushnumber(count);
+    }
+}
+void S4WarriorsLib::GetResourceCountAt()
+{
+    if (g_paResourceMap && *g_paResourceMap && g_pMapSize)
+    {
+        auto x = luaL_check_int(1);
+        auto y = luaL_check_int(2);
+        auto type = lua_lua2C(3);
+        if (x >= 0 && x < *g_pMapSize &&
+            y >= 0 && y < *g_pMapSize)
+        {
+            if (lua_isnumber(type))
+            {
+                auto typeNum = lua_getnumber(type);
+                if (static_cast<EResourceType>(typeNum) == (*g_paResourceMap)[x + y * (*g_pMapSize)].getResourceType())
+                    lua_pushnumber(static_cast<uint8_t>((*g_paResourceMap)[x + y * (*g_pMapSize)].getResourceCount()));
+                else
+                    lua_pushnumber(0.0);
+            }
+            else {
+                lua_pushnumber(static_cast<uint8_t>((*g_paResourceMap)[x + y * (*g_pMapSize)].getResourceCount()));
+            }
+        }
+    }
+}
 // StoreGood(number buildingid, number goodtype, boolean enable, number party)
 void S4WarriorsLib::StoreGood() {
     auto buildingid = luaL_check_int(1);
@@ -450,6 +565,7 @@ void S4WarriorsLib::StoreGood() {
 
 // SetBuildingWorkarea(number buildingid, number x, number y, number party)
 void S4WarriorsLib::SetBuildingWorkarea() {
+    int dummy = luaL_check_int(1); // remove me
     auto buildingid = luaL_check_int(1);
     auto x = luaL_check_int(2);
     auto y = luaL_check_int(3);
@@ -477,7 +593,7 @@ auto GetBuildingID(WORD x, WORD y) {
 void S4WarriorsLib::GetBuildingIdAt() {
     auto x = luaL_check_int(1);
     auto y = luaL_check_int(2);
-    
+
     lua_pushnumber(GetBuildingID(x,y));
 }
 
@@ -506,4 +622,12 @@ void S4WarriorsLib::lua_wmlibopen()
     //insert other constants in table
     for (auto& red : aWarriorsLibVars)
         CLuaUtils::addtableval(lua_getglobal(const_cast<char*>(libName)), red.first, const_cast<char*>(red.second));
+    
+    //insert table WarriorsLib.Resources
+    t = lua_createtable();
+    CLuaUtils::push(t);
+    CLuaUtils::addtableval(lua_getglobal(const_cast<char*>(libName)),resourceTableName, t);
+    //insert WariorsLib.Resources elements
+    for (auto& red : aResourceTypeValues)
+        CLuaUtils::addtableval(t, red.first, static_cast<double>(red.second));
 }
